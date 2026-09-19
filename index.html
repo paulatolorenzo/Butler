@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Butler — collegamento</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#10141a;color:#eef2f6;
+       font:16px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;text-align:center}
+  .box{padding:32px;max-width:420px}
+  h1{font-size:22px;margin:0 0 8px}
+  p{color:#8b97a5;margin:8px 0}
+  a{color:#60aaeb}
+  .err{color:#f0b4a6}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1 id="t">Un momento…</h1>
+  <p id="m">Ti sto rimandando a Butler.</p>
+  <p id="manuale" style="display:none"></p>
+</div>
+<script>
+/* PAGINA PONTE DI BUTLER
+ *
+ * Perche' esiste: Spotify, dopo il login, vuole rimandarti a un indirizzo
+ * https. Butler sta sulla rete di casa e un indirizzo https non ce l'ha.
+ * Quindi Spotify manda qui, e questa pagina — che non fa altro — rispedisce
+ * il telefono a Butler con il codice.
+ *
+ * Non salva niente, non manda niente a nessuno, non ha bisogno di un server:
+ * e' un file solo. L'indirizzo di Butler arriva dentro il parametro "state",
+ * che ci mette Butler stesso quando genera il link.
+ */
+(function () {
+  var p = new URLSearchParams(location.search);
+  var code  = p.get("code");
+  var stato = p.get("state") || "";
+  var err   = p.get("error");
+  var t = document.getElementById("t");
+  var m = document.getElementById("m");
+  var man = document.getElementById("manuale");
+
+  if (err) {
+    t.textContent = "Accesso negato";
+    t.className = "err";
+    m.textContent = "Spotify ha risposto: " + err + ". Riprova da Butler.";
+    return;
+  }
+  if (!code) {
+    t.textContent = "Manca il codice";
+    t.className = "err";
+    m.textContent = "Apri questa pagina dal pulsante di Butler, non a mano.";
+    return;
+  }
+
+  // lo state e' "numerocasuale.indirizzo-di-butler"
+  var ip = stato.split(".").slice(1).join(".");
+  if (!/^\d+\.\d+\.\d+\.\d+$/.test(ip)) ip = "butler.local";
+
+  var dest = "http://" + ip + "/ritorno?code=" + encodeURIComponent(code) +
+             "&state=" + encodeURIComponent(stato);
+
+  // Se il rimbalzo non parte (rete diversa, nome non risolto), si lascia
+  // comunque un modo per arrivarci a mano invece di un vicolo cieco.
+  man.style.display = "block";
+  man.innerHTML = 'Se non succede niente entro qualche secondo, ' +
+                  '<a href="' + dest + '">tocca qui</a>.';
+  location.replace(dest);
+})();
+</script>
+</body>
+</html>
